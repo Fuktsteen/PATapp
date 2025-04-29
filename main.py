@@ -10,6 +10,7 @@ def print_hi(name):
 
 def write_to_file(time=0, distance=0, calories=0):
     print(time, distance, calories)
+    print("testi")
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
