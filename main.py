@@ -34,8 +34,33 @@ def calculate_calories(weight, distance):
     return calories
 
 def check_input(input, mode):
-    print(f"Invalid input.")
-    return False
+    if mode == "d":
+        try:
+            if int(input) < 0:
+                raise ValueError
+            return True
+        except ValueError:
+            print(f"Invalid input.")
+            return False
+    characters = list(input)
+    try:
+        if characters[2] != mode or characters[5] != mode:
+            raise IndexError
+        parts = input.split(mode)
+        if mode == ".":
+            first = 32
+            second = 12
+            third = 99
+        else:
+            first = 99
+            second = 59
+            third = 59
+        if int(parts[0]) < 0 or int(parts[0]) > first or int(parts[1]) < 0 or int(parts[1]) > second or int(parts[2]) < 0 or int(parts[2]) > third:
+            raise ValueError
+    except IndexError or ValueError:
+        print(f"Invalid input.")
+        return False
+    return True
 
 def session_details_input():
     while True:
