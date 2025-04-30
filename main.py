@@ -103,7 +103,22 @@ def session_details_input():
             break
     save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{calculate_calories(get_file_content("physique.txt"), distance)}\n")
 
+def fetch_session_details():
+    raw_sessions = get_file_content("sessions.txt")
+    fine_sessions = []
+    session_data = raw_sessions.split("\n")
+    for raw_session in session_data:
+        fine_sessions.append(raw_session.split("-"))
+    fine_sessions.pop()
+    #print(fine_sessions)
+    return fine_sessions
+
+def edit_session_details():
+    pass
+
 def cli_menu():
+    all_sessions = fetch_session_details()
+    print(all_sessions)
     try:
         open("physique.txt", "x")
         set_physique()
@@ -123,8 +138,9 @@ def cli_menu():
               f"\n"
               f"\n[1] Draw graphs"
               f"\n[2] Add new session details"
-              f"\n[3] Replace existing physique ({get_file_content("physique.txt")} kg)"
-              f"\n[4] Exit"
+              f"\n[3] Edit session details"
+              f"\n[4] Replace existing physique ({get_file_content("physique.txt")} kg)"
+              f"\n[5] Exit"
               f"\n")
         while True:
             menuInput = input("What would you like to do? (give only a number): ")
@@ -136,9 +152,12 @@ def cli_menu():
                     session_details_input()
                     break
                 elif int(menuInput.strip()) == 3:
-                    set_physique()
+                    print(f"WIP")
                     break
                 elif int(menuInput.strip()) == 4:
+                    set_physique()
+                    break
+                elif int(menuInput.strip()) == 5:
                     running = False
                     break
     print(f"Thank you for using PATapp. Exiting...")
