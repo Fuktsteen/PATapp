@@ -1,7 +1,7 @@
-import time
-
-
 # Code for the Personal Activity Tracker, PATapp.
+
+import time
+from PyQt5.QtWidgets import QApplication, QWidget
 
 def save_to_file(file, mode, details):
     #print(f"Destination: {file}\nDetails: {details}")
@@ -58,7 +58,7 @@ def check_input(input, mode):
             return False
     elif mode == "menu":
         try:
-            if int(input.strip()) in [1, 2, 3, 4]:
+            if int(input.strip()) in [1, 2, 3, 4, 5]:
                 return True
             else:
                 raise ValueError
@@ -117,8 +117,6 @@ def edit_session_details():
     pass
 
 def cli_menu():
-    all_sessions = fetch_session_details()
-    print(all_sessions)
     try:
         open("physique.txt", "x")
         set_physique()
@@ -134,11 +132,13 @@ def cli_menu():
                 break
     running = True
     while running:
+        all_sessions = fetch_session_details()
+        print("debug", all_sessions)
         print(f"\nWelcome to PATapp!"
               f"\n"
               f"\n[1] Draw graphs"
               f"\n[2] Add new session details"
-              f"\n[3] Edit session details"
+              f"\n[3] Edit session details ({len(all_sessions)} saved sessions)"
               f"\n[4] Replace existing physique ({get_file_content("physique.txt")} kg)"
               f"\n[5] Exit"
               f"\n")
@@ -164,4 +164,12 @@ def cli_menu():
     time.sleep(1)
 
 if __name__ == '__main__':
+    app = QApplication([])
+
+    # Create a Qt widget, which will be our window.
+    window = QWidget()
+    window.show()  # IMPORTANT!!!!! Windows are hidden by default.
+
+    # Start the event loop.
+    app.exec()
     cli_menu()
