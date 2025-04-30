@@ -2,8 +2,9 @@
 
 import time
 
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget
+from PyQt5.QtCore import QSize, pyqtSignal
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget, QLineEdit, \
+    QHBoxLayout, QLabel
 
 
 def save_to_file(file, mode, details):
@@ -167,39 +168,69 @@ def cli_menu():
     time.sleep(1)
 
 class Menu(QWidget):
+    switch_view = pyqtSignal(int)
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
-
         self.draw_graphs = QPushButton("Draw graphs")
         self.new_session = QPushButton("Add new session details")
         self.edit_session = QPushButton("Edit session details")
         self.replace_physique = QPushButton("Replace existing physique")
         self.exit_button = QPushButton("Exit")
 
-        self.draw_graphs.clicked.connect(lambda: self.menu_button_handler("graphs"))
-        self.new_session.clicked.connect(lambda: self.menu_button_handler("new"))
-        self.edit_session.clicked.connect(lambda: self.menu_button_handler("edit"))
-        self.replace_physique.clicked.connect(lambda: self.menu_button_handler("physique"))
-        self.exit_button.clicked.connect(lambda: self.menu_button_handler("exit"))
-
+        self.draw_graphs.clicked.connect(lambda: self.switch_view.emit(1))
+        self.new_session.clicked.connect(lambda: self.switch_view.emit(1))
+        self.edit_session.clicked.connect(lambda: self.switch_view.emit(1))
+        self.replace_physique.clicked.connect(lambda: self.switch_view.emit(1))
+        self.exit_button.clicked.connect(lambda: exit())
         layout.addWidget(self.draw_graphs)
         layout.addWidget(self.new_session)
         layout.addWidget(self.edit_session)
         layout.addWidget(self.replace_physique)
         layout.addWidget(self.exit_button)
 
-    def menu_button_handler(self, button):
-        if button == "graphs":
-            print(button)
-        elif button == "new":
-            print(button)
-        elif button == "edit":
-            print(button)
-        elif button == "physique":
-            print(button)
-        elif button == "exit":
-            exit()
+class AddSession(QWidget):
+    switch_view = pyqtSignal(int)
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+
+        # need date, time and distance layers
+        dateLayer = QHBoxLayout()
+        self.dateLabel = QLabel("Date exercised (in format dd.mm.yy): ")
+        self.dateInput = QLineEdit()
+        self.dateInput.textChanged.connect(lambda: self.input_checker(self.dateInput.text(), ":"))
+        dateLayer.addWidget(self.dateLabel)
+        dateLayer.addWidget(self.dateInput)
+
+        timeLayer = QHBoxLayout()
+        self.timeLabel = QLabel("Time exercised (in hh:mm:ss): ")
+        self.timeInput = QLineEdit()
+        self.timeInput.textChanged.connect(lambda: self.input_checker(self.timeInput.text(), "."))
+        timeLayer.addWidget(self.timeLabel)
+        timeLayer.addWidget(self.timeInput)
+
+        matkaLayer = QHBoxLayout()
+        self.matkaLabel = QLabel("Distance travelled in meters without decimals: ")
+        self.matkaInput = QLineEdit()
+        self.matkaInput.textChanged.connect(lambda: self.input_checker(self.matkaInput.text(), "d"))
+        matkaLayer.addWidget(self.matkaLabel)
+        matkaLayer.addWidget(self.matkaInput)
+
+        self.submitButton = QPushButton("Save")
+        self.submitButton.clicked.connect(lambda: self.save_handler(self.dateInput.text(), self.timeInput.text(), self.matkaInput.text()))
+
+        layout.addLayout(dateLayer)
+        layout.addLayout(timeLayer)
+        layout.addLayout(matkaLayer)
+        layout.addWidget(self.submitButton)
+
+    def save_handler(self, date, time, distance):
+        print(f"debug {date} {time} {distance}")
+        self.switch_view.emit(0)
+
+    def input_checker(self, candidate, mode):
+        print(f"debug {candidate} {mode}")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -210,7 +241,13 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget()
         self.menuview = Menu()
+        self.menuview.switch_view.connect(self.stack.setCurrentIndex)
+        self.newseshview = AddSession()
+        self.newseshview.switch_view.connect(self.stack.setCurrentIndex)
         self.stack.addWidget(self.menuview)
+        self.stack.addWidget(self.newseshview)
+
+        self.stack.setCurrentIndex(0)
 
         self.setCentralWidget(self.stack)
 
