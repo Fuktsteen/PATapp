@@ -1,7 +1,10 @@
 # Code for the Personal Activity Tracker, PATapp.
 
 import time
-from PyQt5.QtWidgets import QApplication, QWidget
+
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget
+
 
 def save_to_file(file, mode, details):
     #print(f"Destination: {file}\nDetails: {details}")
@@ -163,13 +166,61 @@ def cli_menu():
     print(f"Thank you for using PATapp. Exiting...")
     time.sleep(1)
 
+class Menu(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+
+        self.draw_graphs = QPushButton("Draw graphs")
+        self.new_session = QPushButton("Add new session details")
+        self.edit_session = QPushButton("Edit session details")
+        self.replace_physique = QPushButton("Replace existing physique")
+        self.exit_button = QPushButton("Exit")
+
+        self.draw_graphs.clicked.connect(lambda: self.menu_button_handler("graphs"))
+        self.new_session.clicked.connect(lambda: self.menu_button_handler("new"))
+        self.edit_session.clicked.connect(lambda: self.menu_button_handler("edit"))
+        self.replace_physique.clicked.connect(lambda: self.menu_button_handler("physique"))
+        self.exit_button.clicked.connect(lambda: self.menu_button_handler("exit"))
+
+        layout.addWidget(self.draw_graphs)
+        layout.addWidget(self.new_session)
+        layout.addWidget(self.edit_session)
+        layout.addWidget(self.replace_physique)
+        layout.addWidget(self.exit_button)
+
+    def menu_button_handler(self, button):
+        if button == "graphs":
+            print(button)
+        elif button == "new":
+            print(button)
+        elif button == "edit":
+            print(button)
+        elif button == "physique":
+            print(button)
+        elif button == "exit":
+            exit()
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Personal Activity Tracker - PATapp")
+        self.setMinimumSize(QSize(400, 300))
+        self.setMaximumSize(QSize(1200, 900))
+
+        self.stack = QStackedWidget()
+        self.menuview = Menu()
+        self.stack.addWidget(self.menuview)
+
+        self.setCentralWidget(self.stack)
+
 if __name__ == '__main__':
     app = QApplication([])
 
     # Create a Qt widget, which will be our window.
-    window = QWidget()
+    window = MainWindow()
     window.show()  # IMPORTANT!!!!! Windows are hidden by default.
 
     # Start the event loop.
     app.exec()
-    cli_menu()
+    #cli_menu()
