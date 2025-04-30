@@ -51,13 +51,15 @@ def check_input(input, mode):
             first = 32
             second = 12
             third = 99
+            lowest = 1
         else:
             first = 99
             second = 59
             third = 59
-        if int(parts[0]) < 0 or int(parts[0]) > first or int(parts[1]) < 0 or int(parts[1]) > second or int(parts[2]) < 0 or int(parts[2]) > third:
+            lowest = 0
+        if int(parts[0]) < lowest or int(parts[0]) > first or int(parts[1]) < lowest or int(parts[1]) > second or int(parts[2]) < lowest or int(parts[2]) > third:
             raise ValueError
-    except IndexError or ValueError:
+    except (IndexError, ValueError):
         print(f"Invalid input.")
         return False
     return True
@@ -72,10 +74,26 @@ def session_details_input():
         if check_input(time, ":"):
             break
     while True:
-        distance = int(input("Distance travelled in meters without decimals: "))
+        distance = input("Distance travelled in meters without decimals: ")
         if check_input(distance, "d"):
             break
     save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{calculate_calories(get_file_content("physique.txt"), distance)}\n")
+
+def cli_menu():
+    while True:
+        heti = input("Add new session details? (y/n): ")
+        if check_input(heti, "heti"):
+            if heti.strip().lower() == "y":
+                session_details_input()
+            else:
+                break
+    while True:
+        print(f"\nWelcome to PATapp!"
+              f"\n"
+              f"\n[1] Draw graphs"
+              f"\n[2] Add new session details"
+              f"\n[3] Replace existing physique ({get_file_content("physique.txt")} kg)"
+              f"\n")
 
 if __name__ == '__main__':
     try:
@@ -84,5 +102,3 @@ if __name__ == '__main__':
     except FileExistsError:
         pass
     session_details_input()
-    get_file_content("physique.txt")
-    get_file_content("sessions.txt")
