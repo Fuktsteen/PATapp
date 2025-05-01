@@ -126,9 +126,6 @@ def fetch_session_details():
     fine_sessions.pop()
     return fine_sessions
 
-def edit_session_details():
-    pass
-
 def cli_menu():
     try:
         open("physique.txt", "x")
@@ -203,13 +200,14 @@ class Menu(QWidget):
         layout.addWidget(self.exit_button)
 
     def showEvent(self, event):
+        self.window().resize(500, 200)
         self.edit_session.setText(f"Show session details ({len(fetch_session_details())} saved sessions)")
         self.replace_physique.setText(f"Replace existing physique ({get_file_content("physique.txt")} kg)")
         super().showEvent(event)
 
 class DrawGraphs(QWidget):
     switch_view = pyqtSignal(int)
-    session_data = []
+    sessions_sorted = [ [], [], [], [], [] ]
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
@@ -219,6 +217,7 @@ class DrawGraphs(QWidget):
         self.backButton = QPushButton("Back")
         self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
         buttonLayer.addWidget(self.backButton)
+        buttonLayer.setAlignment(Qt.AlignHCenter)
 
         graphLayer = QHBoxLayout()
         self.dateDistance = FigureCanvas(Figure())
@@ -230,25 +229,44 @@ class DrawGraphs(QWidget):
 
         layout.addLayout(buttonLayer)
         layout.addLayout(graphLayer)
-        self.plot()
 
     def plot(self):
+        self.dateDistance.figure.clear()
+        self.dateDuration.figure.clear()
+        self.dateCalories.figure.clear()
         axDistance = self.dateDistance.figure.add_subplot(111)
-        axDistance.plot([1, 2, 3, 4])
+        axDistance.plot(self.sessions_sorted[0], self.sessions_sorted[2])
         axDistance.set_ylabel('Distance')
         axDistance.set_xlabel('Date')
         axDuration = self.dateDuration.figure.add_subplot(111)
-        axDuration.plot([1, 2, 3, 4])
+        axDuration.plot([1, 2, 3, 4], [1, 4, 9, 16])
         axDuration.set_ylabel('Duration')
         axDuration.set_xlabel('Date')
         axCalories = self.dateCalories.figure.add_subplot(111)
-        axCalories.plot([1, 2, 3, 4])
+        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[3])
         axCalories.set_ylabel('Calories')
         axCalories.set_xlabel('Date')
 
     def showEvent(self, event):
-        self.session_data = fetch_session_details()
-        
+        self.window().resize(1700, 600)
+        # self.sessions_sorted = [ [dates], [durations], [distances], [calories], [weights] ]
+        # raw_sessions = [ [session], [session], ... ]
+        # session = [ date, duration, distance, calories, weight ]
+        self.sessions_sorted = [ [], [], [], [], [] ]
+        raw_sessions = fetch_session_details()
+        for session in raw_sessions:
+            for id, detail in enumerate(session):
+                if id in [2, 3, 4]:
+                    self.sessions_sorted[id].append(float(detail))
+                elif id == 0:
+                    self.sessions_sorted[id].append(detail[:-2])
+                else:
+                    self.sessions_sorted[id].append(detail)
+        print(f"debug\n{self.sessions_sorted}")
+        self.plot()
+        self.dateDistance.draw()
+        self.dateDuration.draw()
+        self.dateCalories.draw()
         super().showEvent(event)
 
 class ShowSessions(QWidget):
@@ -302,6 +320,7 @@ class ShowSessions(QWidget):
         self.switch_view.emit(3)
 
     def showEvent(self, event):
+        self.window().resize(800, 500)
         self.session_data = fetch_session_details()
         self.tarkastaja = len(self.session_data)
         session_text = ""
@@ -436,9 +455,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Personal Activity Tracker - PATapp")
-        self.setMinimumSize(QSize(600, 300))
-        self.setMaximumSize(QSize(1200, 900))
-        self.move(600, 300)
+        self.setMinimumSize(QSize(500, 200))
+        self.move(100, 200)
 
         self.stack = QStackedWidget()
         self.menuview = Menu()
