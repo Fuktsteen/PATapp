@@ -208,6 +208,7 @@ class Menu(QWidget):
 class DrawGraphs(QWidget):
     switch_view = pyqtSignal(int)
     sessions_sorted = [ [], [], [], [], [] ]
+    duration_minutes = []
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
@@ -239,7 +240,7 @@ class DrawGraphs(QWidget):
         axDistance.set_ylabel('Distance')
         axDistance.set_xlabel('Date')
         axDuration = self.dateDuration.figure.add_subplot(111)
-        axDuration.plot([1, 2, 3, 4], [1, 4, 9, 16])
+        axDuration.plot(self.sessions_sorted[0], self.duration_minutes)
         axDuration.set_ylabel('Duration')
         axDuration.set_xlabel('Date')
         axCalories = self.dateCalories.figure.add_subplot(111)
@@ -253,6 +254,7 @@ class DrawGraphs(QWidget):
         # raw_sessions = [ [session], [session], ... ]
         # session = [ date, duration, distance, calories, weight ]
         self.sessions_sorted = [ [], [], [], [], [] ]
+        self.duration_minutes = []
         raw_sessions = fetch_session_details()
         for session in raw_sessions:
             for id, detail in enumerate(session):
@@ -260,9 +262,12 @@ class DrawGraphs(QWidget):
                     self.sessions_sorted[id].append(float(detail))
                 elif id == 0:
                     self.sessions_sorted[id].append(detail[:-2])
-                else:
+                elif id == 1:
                     self.sessions_sorted[id].append(detail)
-        print(f"debug\n{self.sessions_sorted}")
+                    broken_durations = detail.split(":") # hours : minutes : seconds
+                    self.duration_minutes.append( int(broken_durations[1]) + int(broken_durations[2])/60 + int(broken_durations[0])*60 )
+        print(f"debug minutes\n{self.duration_minutes}")
+        print(f"debug self.sessions_sorted\n{self.sessions_sorted}")
         self.plot()
         self.dateDistance.draw()
         self.dateDuration.draw()
@@ -429,6 +434,9 @@ class AddSession(QWidget):
         layout.addLayout(timeLayer)
         layout.addLayout(matkaLayer)
         layout.addLayout(buttonLayer)
+        layout.addWidget(QLabel(f"NOTE\nSorting added sessions aren't sorted in "
+                                f"any way other than the order added, yet."
+                                f"\nIt's possible to edit older sessions by accessing sessions.txt"))
 
     def save_handler(self, date, time, distance):
         weight = get_file_content("physique.txt")
