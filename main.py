@@ -1,45 +1,26 @@
 # Code for the Personal Activity Tracker, PATapp.
 
-import time
-
 from PyQt5.QtCore import QSize, pyqtSignal, Qt, QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget, QLineEdit, \
     QHBoxLayout, QLabel
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 def save_to_file(file, mode, details):
-    #print(f"Destination: {file}\nDetails: {details}")
     with open(file, mode) as f:
         f.write(details)
     print(f"Saved!")
 
 def get_file_content(file):
-    #print(f"Source: {file}")
     with open(file) as f:
         content = f.read()
-        #print(f"Content: {content}")
         return content
-
-def set_physique():
-    while True:
-        weight = input("Enter your weight in kg without decimals: ")
-        try:
-            if int(weight) < 0 or int(weight) > 1000:
-                raise ValueError
-            break
-        except ValueError:
-            print(f"Invalid input.")
-    save_to_file("physique.txt", "w", weight)
 
 def calculate_calories(weight, distance):
     # Calories burned ≈ body mass (kg) × distance (km) × 1 kcal·kg⁻¹·km⁻¹
     calories = int(weight) * (int(distance) / 1000)
-    print(f"Calculating calories..."
-          f"\t{weight} kg * {int(distance) / 1000} km * 1 kcal*kg^(-1)*km^(-1) = {calories}"
-          f"\tDone!")
+    print(f"\t{weight} kg * {int(distance) / 1000} km * 1 kcal*kg^(-1)*km^(-1) = {calories}")
     return calories
 
 def check_input(input, mode):
@@ -52,24 +33,6 @@ def check_input(input, mode):
                 raise ValueError
             return True
         except ValueError:
-            print(f"Invalid input.")
-            return False
-    elif mode == "heti":
-        try:
-            if input.strip().lower() == "y" or input.strip().lower() == "n":
-                return True
-            else:
-                raise AttributeError
-        except AttributeError:
-            print(f"Invalid input.")
-            return False
-    elif mode == "menu":
-        try:
-            if int(input.strip()) in [1, 2, 3, 4, 5]:
-                return True
-            else:
-                raise ValueError
-        except (ValueError, AttributeError):
             print(f"Invalid input.")
             return False
     elif mode == "physique":
@@ -102,21 +65,6 @@ def check_input(input, mode):
             return False
     return True
 
-def session_details_input():
-    while True:
-        date = input("Date exercised (in format dd.mm.yy): ")
-        if check_input(date, "."):
-            break
-    while True:
-        time = input("Time exercised (in format hh:mm:ss): ")
-        if check_input(time, ":"):
-            break
-    while True:
-        distance = input("Distance travelled in meters without decimals: ")
-        if check_input(distance, "d"):
-            break
-    save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{calculate_calories(get_file_content("physique.txt"), distance)}\n")
-
 def fetch_session_details():
     raw_sessions = get_file_content("sessions.txt")
     fine_sessions = []
@@ -125,53 +73,6 @@ def fetch_session_details():
         fine_sessions.append(raw_session.split("-"))
     fine_sessions.pop()
     return fine_sessions
-
-def cli_menu():
-    try:
-        open("physique.txt", "x")
-        set_physique()
-    except FileExistsError:
-        pass
-    while True:
-        heti = input("Add new session details? (y/n): ")
-        if check_input(heti, "heti"):
-            if heti.strip().lower() == "y":
-                session_details_input()
-                break
-            else:
-                break
-    running = True
-    while running:
-        all_sessions = fetch_session_details()
-        print("debug", all_sessions)
-        print(f"\nWelcome to PATapp!"
-              f"\n"
-              f"\n[1] Draw graphs"
-              f"\n[2] Add new session details"
-              f"\n[3] Edit session details ({len(all_sessions)} saved sessions)"
-              f"\n[4] Replace existing physique ({get_file_content("physique.txt")} kg)"
-              f"\n[5] Exit"
-              f"\n")
-        while True:
-            menuInput = input("What would you like to do? (give only a number): ")
-            if check_input(menuInput, "menu"):
-                if int(menuInput.strip()) == 1:
-                    print(f"WIP")
-                    break
-                elif int(menuInput.strip()) == 2:
-                    session_details_input()
-                    break
-                elif int(menuInput.strip()) == 3:
-                    print(f"WIP")
-                    break
-                elif int(menuInput.strip()) == 4:
-                    set_physique()
-                    break
-                elif int(menuInput.strip()) == 5:
-                    running = False
-                    break
-    print(f"Thank you for using PATapp. Exiting...")
-    time.sleep(1)
 
 class Menu(QWidget):
     switch_view = pyqtSignal(int)
@@ -266,8 +167,6 @@ class DrawGraphs(QWidget):
                     self.sessions_sorted[id].append(detail)
                     broken_durations = detail.split(":") # hours : minutes : seconds
                     self.duration_minutes.append( int(broken_durations[1]) + int(broken_durations[2])/60 + int(broken_durations[0])*60 )
-        print(f"debug minutes\n{self.duration_minutes}")
-        print(f"debug self.sessions_sorted\n{self.sessions_sorted}")
         self.plot()
         self.dateDistance.draw()
         self.dateDuration.draw()
@@ -491,4 +390,3 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
     app.exec()
-    #cli_menu()
