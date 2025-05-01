@@ -2,9 +2,13 @@
 
 import time
 
-from PyQt5.QtCore import QSize, pyqtSignal, Qt
+from PyQt5.QtCore import QSize, pyqtSignal, Qt, QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget, QLineEdit, \
     QHBoxLayout, QLabel
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 def save_to_file(file, mode, details):
     #print(f"Destination: {file}\nDetails: {details}")
@@ -182,17 +186,20 @@ class Menu(QWidget):
         self.new_session = QPushButton("Add new session details")
         self.edit_session = QPushButton()
         self.replace_physique = QPushButton()
+        self.githubButton = QPushButton("GitHub")
         self.exit_button = QPushButton("Exit")
 
         self.draw_graphs.clicked.connect(lambda: self.switch_view.emit(4))
         self.new_session.clicked.connect(lambda: self.switch_view.emit(1))
         self.edit_session.clicked.connect(lambda: self.switch_view.emit(3))
         self.replace_physique.clicked.connect(lambda: self.switch_view.emit(2))
+        self.githubButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/Fuktsteen/PATapp")))
         self.exit_button.clicked.connect(lambda: exit())
         layout.addWidget(self.draw_graphs)
         layout.addWidget(self.new_session)
         layout.addWidget(self.edit_session)
         layout.addWidget(self.replace_physique)
+        layout.addWidget(self.githubButton)
         layout.addWidget(self.exit_button)
 
     def showEvent(self, event):
@@ -202,6 +209,7 @@ class Menu(QWidget):
 
 class DrawGraphs(QWidget):
     switch_view = pyqtSignal(int)
+    session_data = []
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
@@ -212,7 +220,36 @@ class DrawGraphs(QWidget):
         self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
         buttonLayer.addWidget(self.backButton)
 
+        graphLayer = QHBoxLayout()
+        self.dateDistance = FigureCanvas(Figure())
+        self.dateDuration = FigureCanvas(Figure())
+        self.dateCalories = FigureCanvas(Figure())
+        graphLayer.addWidget(self.dateDistance)
+        graphLayer.addWidget(self.dateDuration)
+        graphLayer.addWidget(self.dateCalories)
+
         layout.addLayout(buttonLayer)
+        layout.addLayout(graphLayer)
+        self.plot()
+
+    def plot(self):
+        axDistance = self.dateDistance.figure.add_subplot(111)
+        axDistance.plot([1, 2, 3, 4])
+        axDistance.set_ylabel('Distance')
+        axDistance.set_xlabel('Date')
+        axDuration = self.dateDuration.figure.add_subplot(111)
+        axDuration.plot([1, 2, 3, 4])
+        axDuration.set_ylabel('Duration')
+        axDuration.set_xlabel('Date')
+        axCalories = self.dateCalories.figure.add_subplot(111)
+        axCalories.plot([1, 2, 3, 4])
+        axCalories.set_ylabel('Calories')
+        axCalories.set_xlabel('Date')
+
+    def showEvent(self, event):
+        self.session_data = fetch_session_details()
+        
+        super().showEvent(event)
 
 class ShowSessions(QWidget):
     switch_view = pyqtSignal(int)
@@ -269,7 +306,7 @@ class ShowSessions(QWidget):
         self.tarkastaja = len(self.session_data)
         session_text = ""
         for id, session in enumerate(self.session_data):
-            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Burned calories: {session[3]}\n"
+            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Weight: {session[4]}      Burned calories: {session[3]}\n"
         if session_text == "":
             self.sessionDetail.setAlignment(Qt.AlignCenter)
             session_text = f"No saved sessions."
@@ -290,6 +327,7 @@ class Physique(QWidget):
         infoLayer = QHBoxLayout()
         self.infoLabel = QLabel()
         infoLayer.addWidget(self.infoLabel)
+        infoLayer.setAlignment(Qt.AlignHCenter)
 
         inputLayer = QHBoxLayout()
         self.physiqueLabel = QLabel("Enter your weight in kg without decimals:")
@@ -374,7 +412,8 @@ class AddSession(QWidget):
         layout.addLayout(buttonLayer)
 
     def save_handler(self, date, time, distance):
-        save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{calculate_calories(get_file_content("physique.txt"), distance)}\n")
+        weight = get_file_content("physique.txt")
+        save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{calculate_calories(weight, distance)}-{weight}\n")
         self.dateInput.setText("")
         self.timeInput.setText("")
         self.matkaInput.setText("")
