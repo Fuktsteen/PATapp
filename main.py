@@ -138,15 +138,15 @@ class DrawGraphs(QWidget):
         self.dateCalories.figure.clear()
         axDistance = self.dateDistance.figure.add_subplot(111)
         axDistance.plot(self.sessions_sorted[0], self.sessions_sorted[2])
-        axDistance.set_ylabel('Distance')
+        axDistance.set_ylabel('Distance (m)')
         axDistance.set_xlabel('Date')
         axDuration = self.dateDuration.figure.add_subplot(111)
         axDuration.plot(self.sessions_sorted[0], self.duration_minutes)
-        axDuration.set_ylabel('Duration')
+        axDuration.set_ylabel('Duration (min)')
         axDuration.set_xlabel('Date')
         axCalories = self.dateCalories.figure.add_subplot(111)
         axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[3])
-        axCalories.set_ylabel('Calories')
+        axCalories.set_ylabel('Calories (kcal)')
         axCalories.set_xlabel('Date')
 
     def showEvent(self, event):
