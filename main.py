@@ -253,13 +253,16 @@ class ShowSessions(QWidget):
             self.deleteButton.setDisabled(True)
 
     def delete_handler(self, choice):
-        print("VANHA")
-        for id, i in enumerate(self.session_data):
-            print(id, i)
-        print("\nUUS")
         self.session_data.pop(int(choice)-1)
-        for id, i in enumerate(self.session_data):
-            print(id, i)
+        new_data = ""
+        for session in self.session_data:
+            for detail in session:
+                new_data += f"{detail}-"
+            new_data = new_data[:-1]
+            new_data += "\n"
+        save_to_file("sessions.txt", "w", new_data)
+        self.switch_view.emit(0)
+        self.switch_view.emit(3)
 
     def showEvent(self, event):
         self.session_data = fetch_session_details()
