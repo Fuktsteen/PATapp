@@ -185,7 +185,7 @@ class Menu(QWidget):
 
         self.draw_graphs.clicked.connect(lambda: self.switch_view.emit(1))
         self.new_session.clicked.connect(lambda: self.switch_view.emit(1))
-        self.edit_session.clicked.connect(lambda: self.switch_view.emit(1))
+        self.edit_session.clicked.connect(lambda: self.switch_view.emit(3))
         self.replace_physique.clicked.connect(lambda: self.switch_view.emit(2))
         self.exit_button.clicked.connect(lambda: exit())
         layout.addWidget(self.draw_graphs)
@@ -199,11 +199,42 @@ class Menu(QWidget):
         self.replace_physique.setText(f"Replace existing physique ({get_file_content("physique.txt")} kg)")
         super().showEvent(event)
 
-class EditSession(QWidget):
+class DrawGraphs(QWidget):
     switch_view = pyqtSignal(int)
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
+
+        buttonLayer = QHBoxLayout()
+        self.backButton = QPushButton("Back")
+        self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
+        buttonLayer.addWidget(self.backButton)
+
+        layout.addLayout(buttonLayer)
+
+class EditSession(QWidget):
+    switch_view = pyqtSignal(int)
+    session_data = []
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+
+        sessionLayer = QHBoxLayout()
+        for id, session in enumerate(self.session_data):
+            sessionDetails = QLabel(f"{id+1}. {session[0]} {session[1]} {session[2]} {session[3]}")
+            sessionLayer.addWidget(sessionDetails)
+
+        buttonLayer = QHBoxLayout()
+        self.backButton = QPushButton("Back")
+        self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
+        buttonLayer.addWidget(self.backButton)
+
+        layout.addLayout(sessionLayer)
+        layout.addLayout(buttonLayer)
+
+    def showEvent(self, event):
+        self.session_data = fetch_session_details()
+        super().showEvent(event)
         
 class Physique(QWidget):
     switch_view = pyqtSignal(int)
@@ -331,10 +362,13 @@ class MainWindow(QMainWindow):
         self.newseshview.switch_view.connect(self.stack.setCurrentIndex)
         self.physiqueview = Physique()
         self.physiqueview.switch_view.connect(self.stack.setCurrentIndex)
+        self.editview = EditSession()
+        self.editview.switch_view.connect(self.stack.setCurrentIndex)
 
-        self.stack.addWidget(self.menuview)
-        self.stack.addWidget(self.newseshview)
-        self.stack.addWidget(self.physiqueview)
+        self.stack.addWidget(self.menuview)     #0
+        self.stack.addWidget(self.newseshview)  #1
+        self.stack.addWidget(self.physiqueview) #2
+        self.stack.addWidget(self.editview)     #3
         self.stack.setCurrentIndex(0)
         self.setCentralWidget(self.stack)
 
