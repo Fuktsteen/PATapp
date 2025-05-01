@@ -2,7 +2,7 @@
 
 import time
 
-from PyQt5.QtCore import QSize, pyqtSignal
+from PyQt5.QtCore import QSize, pyqtSignal, Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget, QLineEdit, \
     QHBoxLayout, QLabel
 
@@ -177,13 +177,14 @@ class Menu(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
         self.draw_graphs = QPushButton("Draw graphs")
         self.new_session = QPushButton("Add new session details")
         self.edit_session = QPushButton()
         self.replace_physique = QPushButton()
         self.exit_button = QPushButton("Exit")
 
-        self.draw_graphs.clicked.connect(lambda: self.switch_view.emit(1))
+        self.draw_graphs.clicked.connect(lambda: self.switch_view.emit(4))
         self.new_session.clicked.connect(lambda: self.switch_view.emit(1))
         self.edit_session.clicked.connect(lambda: self.switch_view.emit(3))
         self.replace_physique.clicked.connect(lambda: self.switch_view.emit(2))
@@ -204,6 +205,7 @@ class DrawGraphs(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
 
         buttonLayer = QHBoxLayout()
         self.backButton = QPushButton("Back")
@@ -214,26 +216,54 @@ class DrawGraphs(QWidget):
 
 class EditSession(QWidget):
     switch_view = pyqtSignal(int)
-    session_data = []
+    tarkastaja = 0
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
-
-        sessionLayer = QHBoxLayout()
-        for id, session in enumerate(self.session_data):
-            sessionDetails = QLabel(f"{id+1}. {session[0]} {session[1]} {session[2]} {session[3]}")
-            sessionLayer.addWidget(sessionDetails)
+        layout.setAlignment(Qt.AlignTop)
 
         buttonLayer = QHBoxLayout()
         self.backButton = QPushButton("Back")
         self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
+        self.editButton = QPushButton("Edit")
+        self.editButton.setDisabled(True)
+        self.editButton.clicked.connect(lambda: self.switch_view.emit(0))
         buttonLayer.addWidget(self.backButton)
+        buttonLayer.addWidget(self.editButton)
 
-        layout.addLayout(sessionLayer)
+        inputLayer = QHBoxLayout()
+        self.chooseLabel = QLabel(f"Choose session to edit (number):")
+        self.chooseInput = QLineEdit()
+        self.chooseInput.textChanged.connect(lambda: self.input_checker(self.chooseInput.text()))
+        inputLayer.addWidget(self.chooseLabel)
+        inputLayer.addWidget(self.chooseInput)
+
+        self.sessionDetail = QLabel()
         layout.addLayout(buttonLayer)
+        layout.addLayout(inputLayer)
+        layout.addWidget(self.sessionDetail)
+
+    def input_checker(self, candidate):
+        try:
+            if int(candidate) < 1 or int(candidate) > self.tarkastaja:
+                raise ValueError
+            self.editButton.setEnabled(True)
+        except ValueError:
+            self.editButton.setDisabled(True)
 
     def showEvent(self, event):
-        self.session_data = fetch_session_details()
+        session_data = fetch_session_details()
+        self.tarkastaja = len(session_data)
+        session_text = ""
+        for id, session in enumerate(session_data):
+            session_text += f"{id+1}. {session[0]} {session[1]} {session[2]} {session[3]}\n"
+        if session_text == "":
+            self.sessionDetail.setAlignment(Qt.AlignCenter)
+            session_text = f"No saved sessions."
+        else:
+            self.sessionDetail.setAlignment(Qt.AlignLeft)
+        self.sessionDetail.setText(session_text)
+        self.chooseInput.setText("")
         super().showEvent(event)
         
 class Physique(QWidget):
@@ -241,6 +271,7 @@ class Physique(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
 
         # need layers for info, input and buttons
         infoLayer = QHBoxLayout()
@@ -289,6 +320,7 @@ class AddSession(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
 
         # need date, time and distance layers
         self.inputChecker = [ [".", False], [":", False], ["d", False] ]
@@ -354,6 +386,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Personal Activity Tracker - PATapp")
         self.setMinimumSize(QSize(400, 300))
         self.setMaximumSize(QSize(1200, 900))
+        self.move(600, 300)
 
         self.stack = QStackedWidget()
         self.menuview = Menu()
@@ -364,11 +397,14 @@ class MainWindow(QMainWindow):
         self.physiqueview.switch_view.connect(self.stack.setCurrentIndex)
         self.editview = EditSession()
         self.editview.switch_view.connect(self.stack.setCurrentIndex)
+        self.graphsview = DrawGraphs()
+        self.graphsview.switch_view.connect(self.stack.setCurrentIndex)
 
         self.stack.addWidget(self.menuview)     #0
         self.stack.addWidget(self.newseshview)  #1
         self.stack.addWidget(self.physiqueview) #2
         self.stack.addWidget(self.editview)     #3
+        self.stack.addWidget(self.graphsview)   #4
         self.stack.setCurrentIndex(0)
         self.setCentralWidget(self.stack)
 
