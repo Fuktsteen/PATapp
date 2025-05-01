@@ -196,7 +196,7 @@ class Menu(QWidget):
         layout.addWidget(self.exit_button)
 
     def showEvent(self, event):
-        self.edit_session.setText(f"Edit session details ({len(fetch_session_details())} saved sessions)")
+        self.edit_session.setText(f"Show session details ({len(fetch_session_details())} saved sessions)")
         self.replace_physique.setText(f"Replace existing physique ({get_file_content("physique.txt")} kg)")
         super().showEvent(event)
 
@@ -214,9 +214,10 @@ class DrawGraphs(QWidget):
 
         layout.addLayout(buttonLayer)
 
-class EditSession(QWidget):
+class ShowSessions(QWidget):
     switch_view = pyqtSignal(int)
     tarkastaja = 0
+    session_data = []
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
@@ -225,14 +226,14 @@ class EditSession(QWidget):
         buttonLayer = QHBoxLayout()
         self.backButton = QPushButton("Back")
         self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
-        self.editButton = QPushButton("Edit")
-        self.editButton.setDisabled(True)
-        self.editButton.clicked.connect(lambda: self.switch_view.emit(0))
+        self.deleteButton = QPushButton("Delete")
+        self.deleteButton.setDisabled(True)
+        self.deleteButton.clicked.connect(lambda: self.delete_handler(self.chooseInput.text()))
         buttonLayer.addWidget(self.backButton)
-        buttonLayer.addWidget(self.editButton)
+        buttonLayer.addWidget(self.deleteButton)
 
         inputLayer = QHBoxLayout()
-        self.chooseLabel = QLabel(f"Choose session to edit (number):")
+        self.chooseLabel = QLabel(f"Choose session to delete (number):")
         self.chooseInput = QLineEdit()
         self.chooseInput.textChanged.connect(lambda: self.input_checker(self.chooseInput.text()))
         inputLayer.addWidget(self.chooseLabel)
@@ -247,16 +248,25 @@ class EditSession(QWidget):
         try:
             if int(candidate) < 1 or int(candidate) > self.tarkastaja:
                 raise ValueError
-            self.editButton.setEnabled(True)
+            self.deleteButton.setEnabled(True)
         except ValueError:
-            self.editButton.setDisabled(True)
+            self.deleteButton.setDisabled(True)
+
+    def delete_handler(self, choice):
+        print("VANHA")
+        for id, i in enumerate(self.session_data):
+            print(id, i)
+        print("\nUUS")
+        self.session_data.pop(int(choice)-1)
+        for id, i in enumerate(self.session_data):
+            print(id, i)
 
     def showEvent(self, event):
-        session_data = fetch_session_details()
-        self.tarkastaja = len(session_data)
+        self.session_data = fetch_session_details()
+        self.tarkastaja = len(self.session_data)
         session_text = ""
-        for id, session in enumerate(session_data):
-            session_text += f"{id+1}. {session[0]} {session[1]} {session[2]} {session[3]}\n"
+        for id, session in enumerate(self.session_data):
+            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Burned calories: {session[3]}\n"
         if session_text == "":
             self.sessionDetail.setAlignment(Qt.AlignCenter)
             session_text = f"No saved sessions."
@@ -384,7 +394,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Personal Activity Tracker - PATapp")
-        self.setMinimumSize(QSize(400, 300))
+        self.setMinimumSize(QSize(600, 300))
         self.setMaximumSize(QSize(1200, 900))
         self.move(600, 300)
 
@@ -395,15 +405,15 @@ class MainWindow(QMainWindow):
         self.newseshview.switch_view.connect(self.stack.setCurrentIndex)
         self.physiqueview = Physique()
         self.physiqueview.switch_view.connect(self.stack.setCurrentIndex)
-        self.editview = EditSession()
-        self.editview.switch_view.connect(self.stack.setCurrentIndex)
+        self.sessionsview = ShowSessions()
+        self.sessionsview.switch_view.connect(self.stack.setCurrentIndex)
         self.graphsview = DrawGraphs()
         self.graphsview.switch_view.connect(self.stack.setCurrentIndex)
 
         self.stack.addWidget(self.menuview)     #0
         self.stack.addWidget(self.newseshview)  #1
         self.stack.addWidget(self.physiqueview) #2
-        self.stack.addWidget(self.editview)     #3
+        self.stack.addWidget(self.sessionsview) #3
         self.stack.addWidget(self.graphsview)   #4
         self.stack.setCurrentIndex(0)
         self.setCentralWidget(self.stack)
