@@ -20,7 +20,6 @@ def get_file_content(file):
 def calculate_calories(weight, distance):
     # Calories burned ≈ body mass (kg) × distance (km) × 1 kcal·kg⁻¹·km⁻¹
     calories = int(weight) * (int(distance) / 1000)
-    print(f"\t{weight} kg * {int(distance) / 1000} km * 1 kcal*kg^(-1)*km^(-1) = {calories}")
     return round(calories, 2)
 
 def calculate_pace(distance, duration):
@@ -41,7 +40,6 @@ def calculate_monthly_exercises():
 
 def check_input(input, mode):
     if input.strip() == "":
-        #print(f"Invalid input.")
         return False
     elif mode == "d":
         try:
@@ -49,14 +47,12 @@ def check_input(input, mode):
                 raise ValueError
             return True
         except ValueError:
-            #print(f"Invalid input.")
             return False
     elif mode == "physique":
         try:
             if int(input.strip()) < 0:
                 raise ValueError
         except ValueError:
-            #print(f"Invalid input.")
             return False
     else:
         characters = list(input)
@@ -178,13 +174,13 @@ class DrawGraphs(QWidget):
         axDuration.grid(True, linestyle='--', alpha=0.5)
         axDuration.set_title("Duration Over Time")
         axCalories = self.dateCalories.figure.add_subplot(111)
-        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[4], marker='o', linestyle='-', color='blue', linewidth=1)
+        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[5], marker='o', linestyle='-', color='blue', linewidth=1)
         axCalories.set_ylabel('Calories (kcal)')
         axCalories.set_xlabel('Date')
         axCalories.grid(True, linestyle='--', alpha=0.5)
         axCalories.set_title("Calories Burnt Over Time")
         axPace = self.datePace.figure.add_subplot(111)
-        axPace.plot(self.sessions_sorted[0], self.sessions_sorted[3], marker='o', linestyle='-', color='blue', linewidth=1)
+        axPace.plot(self.sessions_sorted[0], self.sessions_sorted[4], marker='o', linestyle='-', color='blue', linewidth=1)
         axPace.set_ylabel('Pace (km/h)')
         axPace.set_xlabel('Date')
         axPace.grid(True, linestyle='--', alpha=0.5)
@@ -192,15 +188,15 @@ class DrawGraphs(QWidget):
 
     def showEvent(self, event):
         self.window().resize(1400, 900)
-        # self.sessions_sorted = [ [dates], [durations], [distances], [paces], [calories], [weights] ]
+        # self.sessions_sorted = [ [dates], [durations], [distances], [weights], [paces], [calories] ]
         # raw_sessions = [ [session], [session], ... ]
-        # session = [ date, duration, distance, pace, calories, weight ]
+        # session = [ date, duration, distance, weight ]
         self.sessions_sorted = [ [], [], [], [], [], [] ]
         self.duration_minutes = []
         raw_sessions = fetch_session_details()
         for session in raw_sessions:
             for id, detail in enumerate(session):
-                if id in [2, 3, 4, 5]:
+                if id in [2, 3]:
                     self.sessions_sorted[id].append(float(detail))
                 elif id == 0:
                     self.sessions_sorted[id].append(detail[:-2])
@@ -208,6 +204,10 @@ class DrawGraphs(QWidget):
                     self.sessions_sorted[id].append(detail)
                     broken_durations = detail.split(":") # hours : minutes : seconds
                     self.duration_minutes.append( int(broken_durations[1]) + int(broken_durations[2])/60 + int(broken_durations[0])*60 )
+            self.sessions_sorted[4].append(calculate_pace(session[2], session[1]))
+            # calculate_pace(session[2], session[1])
+            self.sessions_sorted[5].append(calculate_calories(session[3], session[2]))
+            # calculate_calories(session[3], session[2])
         self.plot()
         self.dateDistance.draw()
         self.dateDuration.draw()
@@ -284,7 +284,7 @@ class ShowSessions(QWidget):
         self.tarkastaja = len(self.session_data)
         session_text = ""
         for id, session in enumerate(self.session_data):
-            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Pace: {session[3]}      Weight: {session[5]}      Burned calories: {session[4]}\n"
+            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Pace: {calculate_pace(session[2], session[1])}      Weight: {session[3]}      Burned calories: {calculate_calories(session[3], session[2])}\n"
         if session_text == "":
             self.sessionDetail.setAlignment(Qt.AlignCenter)
             session_text = f"No saved sessions."
@@ -413,10 +413,8 @@ class AddSession(QWidget):
 
     def save_handler(self, date, time, distance):
         weight = get_file_content("physique.txt")
-        calories = calculate_calories(weight, distance)
-        pace = calculate_pace(distance, time)
-        save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{pace}-{calories}-{weight}\n")
-        self.switch_view.emit(0)
+        save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{weight}\n")
+        self.switch_view.emit(3)
 
     def input_checker(self, candidate, mode):
         if check_input(candidate, mode):
