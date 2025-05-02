@@ -41,7 +41,7 @@ def calculate_monthly_exercises():
 
 def check_input(input, mode):
     if input.strip() == "":
-        print(f"Invalid input.")
+        #print(f"Invalid input.")
         return False
     elif mode == "d":
         try:
@@ -49,14 +49,14 @@ def check_input(input, mode):
                 raise ValueError
             return True
         except ValueError:
-            print(f"Invalid input.")
+            #print(f"Invalid input.")
             return False
     elif mode == "physique":
         try:
             if int(input.strip()) < 0:
                 raise ValueError
         except ValueError:
-            print(f"Invalid input.")
+            #print(f"Invalid input.")
             return False
     else:
         characters = list(input)
@@ -77,7 +77,7 @@ def check_input(input, mode):
             if int(parts[0]) < lowest or int(parts[0]) > first or int(parts[1]) < lowest or int(parts[1]) > second or int(parts[2]) < lowest or int(parts[2]) > third:
                 raise ValueError
         except (IndexError, ValueError):
-            print(f"Invalid input.")
+            #print(f"Invalid input.")
             return False
     return True
 
@@ -121,7 +121,10 @@ class Menu(QWidget):
     def showEvent(self, event):
         self.window().resize(500, 200)
         self.edit_session.setText(f"Show session details ({len(fetch_session_details())} saved sessions)")
-        self.replace_physique.setText(f"Replace existing physique ({get_file_content("physique.txt")} kg)")
+        if get_file_content("physique.txt") != "":
+            self.replace_physique.setText(f"Replace existing physique ({get_file_content("physique.txt")} kg)")
+        else:
+            self.replace_physique.setText(f"SET PHYSIQUE")
         super().showEvent(event)
 
 class DrawGraphs(QWidget):
@@ -328,14 +331,17 @@ class Physique(QWidget):
         layout.addLayout(buttonLayer)
 
     def showEvent(self, event):
-        self.infoLabel.setText(f"Your current saved physique is {get_file_content('physique.txt')} kg."
+        paino = get_file_content('physique.txt')
+        if paino == "":
+            paino = 0
+        self.infoLabel.setText(f"Your current saved physique is {paino} kg."
                                 f"\nThis is used to estimate burned calories based on distance exercised:"
                                 f"\nCalories burned ≈ body mass (kg) × distance (km) × 1 kcal·kg⁻¹·km⁻¹")
+        self.physiqueInput.setText("")
         super().showEvent(event)
 
     def save_handler(self, weight):
         save_to_file("physique.txt", "w", weight)
-        self.physiqueInput.setText("")
         self.switch_view.emit(0)
 
     def input_checker(self, candidate):
@@ -393,14 +399,23 @@ class AddSession(QWidget):
                                 f"any way other than the order added, yet."
                                 f"\nIt's possible to edit older sessions by accessing sessions.txt"))
 
+    def showEvent(self, event):
+        if get_file_content("physique.txt") == "":
+            self.submitButton.setText("SET PHYSIQUE TO SAVE SESSIONS!")
+            self.submitButton.setStyleSheet("color: red;")
+        else:
+            self.submitButton.setText("Save")
+            self.submitButton.setStyleSheet("color: black;")
+        self.dateInput.setText("")
+        self.timeInput.setText("")
+        self.matkaInput.setText("")
+        super().showEvent(event)
+
     def save_handler(self, date, time, distance):
         weight = get_file_content("physique.txt")
         calories = calculate_calories(weight, distance)
         pace = calculate_pace(distance, time)
         save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{pace}-{calories}-{weight}\n")
-        self.dateInput.setText("")
-        self.timeInput.setText("")
-        self.matkaInput.setText("")
         self.switch_view.emit(0)
 
     def input_checker(self, candidate, mode):
@@ -408,7 +423,7 @@ class AddSession(QWidget):
             for i in self.inputChecker:
                 if i[0] == mode:
                     i[1] = True
-            if self.inputChecker[0][1] and self.inputChecker[1][1] and self.inputChecker[2][1]:
+            if self.inputChecker[0][1] and self.inputChecker[1][1] and self.inputChecker[2][1] and get_file_content("physique.txt") != "":
                 self.submitButton.setEnabled(True)
         else:
             for i in self.inputChecker:
