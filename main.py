@@ -1,6 +1,6 @@
 # Code for the Personal Activity Tracker, PATapp.
 
-from PyQt5.QtCore import QSize, pyqtSignal, Qt, QUrl
+from PyQt5.QtCore import QSize, pyqtSignal, Qt, QUrl, center
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget, QLineEdit, \
     QHBoxLayout, QLabel
@@ -21,7 +21,13 @@ def calculate_calories(weight, distance):
     # Calories burned ≈ body mass (kg) × distance (km) × 1 kcal·kg⁻¹·km⁻¹
     calories = int(weight) * (int(distance) / 1000)
     print(f"\t{weight} kg * {int(distance) / 1000} km * 1 kcal*kg^(-1)*km^(-1) = {calories}")
-    return calories
+    return round(calories, 2)
+
+def calculate_pace(distance, duration):
+    # returns average pace for a session in km/h = distance / duration
+    raw_time = duration.split(":")
+    time = int(raw_time[0]) + int(raw_time[1]) / 60 + int(raw_time[2]) / 3600
+    return round((int(distance)/1000) / time, 2)
 
 def check_input(input, mode):
     if input.strip() == "":
@@ -72,12 +78,14 @@ def fetch_session_details():
     for raw_session in session_data:
         fine_sessions.append(raw_session.split("-"))
     fine_sessions.pop()
+    # fine_sessions = [ [detail, detail, ... ] [detail, detail, ... ] ... ]
     return fine_sessions
 
 class Menu(QWidget):
     switch_view = pyqtSignal(int)
     def __init__(self):
         super().__init__()
+        self.setMaximumWidth(500)
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
         self.draw_graphs = QPushButton("Draw graphs")
@@ -108,34 +116,42 @@ class Menu(QWidget):
 
 class DrawGraphs(QWidget):
     switch_view = pyqtSignal(int)
-    sessions_sorted = [ [], [], [], [], [] ]
+    sessions_sorted = [ [], [], [], [], [], [] ]
     duration_minutes = []
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignTop)
+        #layout.setAlignment(Qt.AlignTop)
 
         buttonLayer = QHBoxLayout()
         self.backButton = QPushButton("Back")
         self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
+        self.graphNote = QLabel("Note: Viewing graphs in fullscreen may make them easier to read")
         buttonLayer.addWidget(self.backButton)
+        buttonLayer.addWidget(self.graphNote)
         buttonLayer.setAlignment(Qt.AlignHCenter)
 
         graphLayer = QHBoxLayout()
         self.dateDistance = FigureCanvas(Figure())
         self.dateDuration = FigureCanvas(Figure())
-        self.dateCalories = FigureCanvas(Figure())
         graphLayer.addWidget(self.dateDistance)
         graphLayer.addWidget(self.dateDuration)
-        graphLayer.addWidget(self.dateCalories)
+
+        lowerGraphs = QHBoxLayout()
+        self.dateCalories = FigureCanvas(Figure())
+        self.datePace = FigureCanvas(Figure())
+        lowerGraphs.addWidget(self.dateCalories)
+        lowerGraphs.addWidget(self.datePace)
 
         layout.addLayout(buttonLayer)
         layout.addLayout(graphLayer)
+        layout.addLayout(lowerGraphs)
 
     def plot(self):
         self.dateDistance.figure.clear()
         self.dateDuration.figure.clear()
         self.dateCalories.figure.clear()
+        self.datePace.figure.clear()
         axDistance = self.dateDistance.figure.add_subplot(111)
         axDistance.plot(self.sessions_sorted[0], self.sessions_sorted[2])
         axDistance.set_ylabel('Distance (m)')
@@ -145,21 +161,25 @@ class DrawGraphs(QWidget):
         axDuration.set_ylabel('Duration (min)')
         axDuration.set_xlabel('Date')
         axCalories = self.dateCalories.figure.add_subplot(111)
-        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[3])
+        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[4])
         axCalories.set_ylabel('Calories (kcal)')
         axCalories.set_xlabel('Date')
+        axPace = self.datePace.figure.add_subplot(111)
+        axPace.plot(self.sessions_sorted[0], self.sessions_sorted[3])
+        axPace.set_ylabel('Pace (km/h)')
+        axPace.set_xlabel('Date')
 
     def showEvent(self, event):
-        self.window().resize(1700, 600)
-        # self.sessions_sorted = [ [dates], [durations], [distances], [calories], [weights] ]
+        self.window().resize(1400, 900)
+        # self.sessions_sorted = [ [dates], [durations], [distances], [paces], [calories], [weights] ]
         # raw_sessions = [ [session], [session], ... ]
-        # session = [ date, duration, distance, calories, weight ]
-        self.sessions_sorted = [ [], [], [], [], [] ]
+        # session = [ date, duration, distance, pace, calories, weight ]
+        self.sessions_sorted = [ [], [], [], [], [], [] ]
         self.duration_minutes = []
         raw_sessions = fetch_session_details()
         for session in raw_sessions:
             for id, detail in enumerate(session):
-                if id in [2, 3, 4]:
+                if id in [2, 3, 4, 5]:
                     self.sessions_sorted[id].append(float(detail))
                 elif id == 0:
                     self.sessions_sorted[id].append(detail[:-2])
@@ -179,6 +199,7 @@ class ShowSessions(QWidget):
     session_data = []
     def __init__(self):
         super().__init__()
+        self.setMaximumWidth(800)
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
 
@@ -229,7 +250,7 @@ class ShowSessions(QWidget):
         self.tarkastaja = len(self.session_data)
         session_text = ""
         for id, session in enumerate(self.session_data):
-            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Weight: {session[4]}      Burned calories: {session[3]}\n"
+            session_text += f"{id+1}.       Date: {session[0]}      Duration: {session[1]}      Distance: {session[2]}      Pace: {session[3]}      Weight: {session[5]}      Burned calories: {session[4]}\n"
         if session_text == "":
             self.sessionDetail.setAlignment(Qt.AlignCenter)
             session_text = f"No saved sessions."
@@ -243,6 +264,7 @@ class Physique(QWidget):
     switch_view = pyqtSignal(int)
     def __init__(self):
         super().__init__()
+        self.setMaximumWidth(500)
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
 
@@ -293,6 +315,7 @@ class AddSession(QWidget):
     switch_view = pyqtSignal(int)
     def __init__(self):
         super().__init__()
+        self.setMaximumWidth(500)
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
 
@@ -333,13 +356,15 @@ class AddSession(QWidget):
         layout.addLayout(timeLayer)
         layout.addLayout(matkaLayer)
         layout.addLayout(buttonLayer)
-        layout.addWidget(QLabel(f"NOTE\nSorting added sessions aren't sorted in "
+        layout.addWidget(QLabel(f"NOTE\nAdded sessions aren't sorted in "
                                 f"any way other than the order added, yet."
                                 f"\nIt's possible to edit older sessions by accessing sessions.txt"))
 
     def save_handler(self, date, time, distance):
         weight = get_file_content("physique.txt")
-        save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{calculate_calories(weight, distance)}-{weight}\n")
+        calories = calculate_calories(weight, distance)
+        pace = calculate_pace(distance, time)
+        save_to_file("sessions.txt", "a", f"{date}-{time}-{distance}-{pace}-{calories}-{weight}\n")
         self.dateInput.setText("")
         self.timeInput.setText("")
         self.matkaInput.setText("")
