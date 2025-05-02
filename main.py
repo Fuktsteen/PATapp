@@ -29,6 +29,16 @@ def calculate_pace(distance, duration):
     time = int(raw_time[0]) + int(raw_time[1]) / 60 + int(raw_time[2]) / 3600
     return round((int(distance)/1000) / time, 2)
 
+def calculate_monthly_exercises():
+    # raw_data = [ [detail, detail, ... ] [detail, detail, ... ] ... ]
+    # monthly_amounts = number of exercises for each month
+    raw_data = fetch_session_details()
+    monthly_amounts = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+    for session in raw_data:
+        kuukausi = session[0].split(".")[1]
+        monthly_amounts[int(kuukausi)-1] += 1
+    return monthly_amounts
+
 def check_input(input, mode):
     if input.strip() == "":
         print(f"Invalid input.")
@@ -153,21 +163,29 @@ class DrawGraphs(QWidget):
         self.dateCalories.figure.clear()
         self.datePace.figure.clear()
         axDistance = self.dateDistance.figure.add_subplot(111)
-        axDistance.plot(self.sessions_sorted[0], self.sessions_sorted[2])
+        axDistance.plot(self.sessions_sorted[0], self.sessions_sorted[2], marker='o', linestyle='-', color='blue', linewidth=1)
         axDistance.set_ylabel('Distance (m)')
         axDistance.set_xlabel('Date')
+        axDistance.grid(True, linestyle='--', alpha=0.5)
+        axDistance.set_title("Distance Over Time")
         axDuration = self.dateDuration.figure.add_subplot(111)
-        axDuration.plot(self.sessions_sorted[0], self.duration_minutes)
+        axDuration.plot(self.sessions_sorted[0], self.duration_minutes, marker='o', linestyle='-', color='blue', linewidth=1)
         axDuration.set_ylabel('Duration (min)')
         axDuration.set_xlabel('Date')
+        axDuration.grid(True, linestyle='--', alpha=0.5)
+        axDuration.set_title("Duration Over Time")
         axCalories = self.dateCalories.figure.add_subplot(111)
-        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[4])
+        axCalories.plot(self.sessions_sorted[0], self.sessions_sorted[4], marker='o', linestyle='-', color='blue', linewidth=1)
         axCalories.set_ylabel('Calories (kcal)')
         axCalories.set_xlabel('Date')
+        axCalories.grid(True, linestyle='--', alpha=0.5)
+        axCalories.set_title("Calories Burnt Over Time")
         axPace = self.datePace.figure.add_subplot(111)
-        axPace.plot(self.sessions_sorted[0], self.sessions_sorted[3])
+        axPace.plot(self.sessions_sorted[0], self.sessions_sorted[3], marker='o', linestyle='-', color='blue', linewidth=1)
         axPace.set_ylabel('Pace (km/h)')
         axPace.set_xlabel('Date')
+        axPace.grid(True, linestyle='--', alpha=0.5)
+        axPace.set_title("Pace Over Time")
 
     def showEvent(self, event):
         self.window().resize(1400, 900)
@@ -220,9 +238,22 @@ class ShowSessions(QWidget):
         inputLayer.addWidget(self.chooseInput)
 
         self.sessionDetail = QLabel()
+        self.sessionGraph = FigureCanvas(Figure())
         layout.addLayout(buttonLayer)
         layout.addLayout(inputLayer)
         layout.addWidget(self.sessionDetail)
+        layout.addWidget(self.sessionGraph)
+
+    def plot(self):
+        self.sessionGraph.figure.clear()
+        axSessions = self.sessionGraph.figure.add_subplot(111)
+        months = list(range(1, 13))
+        axSessions.plot(months, calculate_monthly_exercises(), marker='o', linestyle='-', color='blue', linewidth=1)
+        axSessions.set_title("Amount Exercised By Month")
+        axSessions.set_xticks(months)
+        axSessions.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+        axSessions.grid(True, linestyle='--', alpha=0.5)
 
     def input_checker(self, candidate):
         try:
@@ -245,7 +276,7 @@ class ShowSessions(QWidget):
         self.switch_view.emit(3)
 
     def showEvent(self, event):
-        self.window().resize(800, 500)
+        self.window().resize(800, 600)
         self.session_data = fetch_session_details()
         self.tarkastaja = len(self.session_data)
         session_text = ""
@@ -258,6 +289,8 @@ class ShowSessions(QWidget):
             self.sessionDetail.setAlignment(Qt.AlignLeft)
         self.sessionDetail.setText(session_text)
         self.chooseInput.setText("")
+        self.plot()
+        self.sessionGraph.draw()
         super().showEvent(event)
         
 class Physique(QWidget):
