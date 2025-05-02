@@ -3,7 +3,7 @@
 from PyQt5.QtCore import QSize, pyqtSignal, Qt, QUrl, center
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QStackedWidget, QLineEdit, \
-    QHBoxLayout, QLabel
+    QHBoxLayout, QLabel, QRadioButton, QButtonGroup
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -98,29 +98,120 @@ class Menu(QWidget):
         self.new_session = QPushButton("Add new session details")
         self.edit_session = QPushButton()
         self.replace_physique = QPushButton()
+        self.ibw_calculator = QPushButton("IBW Calculator")
         self.githubButton = QPushButton("GitHub")
         self.exit_button = QPushButton("Exit")
+        self.calory_info = QLabel()
 
         self.draw_graphs.clicked.connect(lambda: self.switch_view.emit(4))
         self.new_session.clicked.connect(lambda: self.switch_view.emit(1))
         self.edit_session.clicked.connect(lambda: self.switch_view.emit(3))
         self.replace_physique.clicked.connect(lambda: self.switch_view.emit(2))
+        self.ibw_calculator.clicked.connect(lambda: self.switch_view.emit(5))
         self.githubButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/Fuktsteen/PATapp")))
         self.exit_button.clicked.connect(lambda: exit())
         layout.addWidget(self.draw_graphs)
         layout.addWidget(self.new_session)
         layout.addWidget(self.edit_session)
         layout.addWidget(self.replace_physique)
+        layout.addWidget(self.ibw_calculator)
         layout.addWidget(self.githubButton)
         layout.addWidget(self.exit_button)
+        layout.addWidget(self.calory_info)
+
+    def get_calory_info(self):
+        # ACSM recommendation:
+        # minimum  1000 kcal / week
+        # fat loss 2000-3000 kcal / week
+        raw_sessions = fetch_session_details()
+        calories = 0
+        session_counter = 0
+        try:
+            for i in list(range(1,6)):
+                calories += calculate_calories(raw_sessions[i*(-1)][3], raw_sessions[i*(-1)][2])
+                session_counter += 1
+        except IndexError:
+            pass
+        calorie_average = calories / session_counter
+        minimi = int(round(1000 / calorie_average, 0))
+        laihutus_down = int(round(2000 / calorie_average, 0))
+        laihutus_up = int(round(3000 / calorie_average, 0))
+        return (f"Average calories burnt during last {session_counter} sessions: {int(round(calorie_average, 0))} kcal" 
+                f"\nExercise weekly:"
+                f"\n{minimi} times at minimum to upkeep basic health by burning 1000 kcal/week"
+                f"\n{laihutus_down}-{laihutus_up} times if trying to lose fat to burn 2000-3000 kcal/week"
+                f"\n(ACSM recommendation)")
 
     def showEvent(self, event):
-        self.window().resize(500, 200)
+        self.window().resize(500, 300)
+        self.calory_info.setText(self.get_calory_info())
         self.edit_session.setText(f"Show session details ({len(fetch_session_details())} saved sessions)")
         if get_file_content("physique.txt") != "":
             self.replace_physique.setText(f"Replace existing physique ({get_file_content("physique.txt")} kg)")
         else:
             self.replace_physique.setText(f"SET PHYSIQUE")
+        super().showEvent(event)
+
+class IBWcalculator(QWidget):
+    switch_view = pyqtSignal(int)
+    def __init__(self):
+        super().__init__()
+        self.setMaximumWidth(500)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
+
+        self.backButton = QPushButton("Back")
+        self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
+        self.infoLabel = QLabel("Calculate your ideal body weight using Devine Formula.")
+        self.resultLabel = QLabel("Waiting for valid input.")
+        self.resultLabel.setAlignment(Qt.AlignHCenter)
+
+        genderLayer = QHBoxLayout()
+        self.genderLabel = QLabel("Gender:")
+        self.maleButton = QRadioButton("M")
+        self.femaleButton = QRadioButton("F")
+        self.buttonGroup = QButtonGroup(self)
+        self.buttonGroup.addButton(self.maleButton)
+        self.buttonGroup.addButton(self.femaleButton)
+        self.buttonGroup.buttonClicked.connect(lambda: self.result_maker(self.heightInput.text()))
+        genderLayer.addWidget(self.genderLabel)
+        genderLayer.addWidget(self.maleButton)
+        genderLayer.addWidget(self.femaleButton)
+
+        heightLayer = QHBoxLayout()
+        self.heightLabel = QLabel("Height in cm:")
+        self.heightInput = QLineEdit()
+        self.heightInput.textChanged.connect(lambda: self.result_maker(self.heightInput.text()))
+        heightLayer.addWidget(self.heightLabel)
+        heightLayer.addWidget(self.heightInput)
+
+        layout.addWidget(self.backButton)
+        layout.addWidget(self.infoLabel)
+        layout.addLayout(genderLayer)
+        layout.addLayout(heightLayer)
+        layout.addWidget(self.resultLabel)
+
+    def result_maker(self, candidate):
+        weight = get_file_content("physique.txt")
+        try:
+            if self.maleButton.isChecked():
+                paino_vakio = 50
+            elif self.femaleButton.isChecked():
+                paino_vakio = 45.5
+            else:
+                raise ValueError
+            ideal_weight = round(paino_vakio + 2.3 * ( int(candidate)/2.54 - 60 ), 1)
+            if weight != "":
+                weight_info = f"\nYour weight ({weight} kg) is off the ideal by {round(int(weight)-ideal_weight, 1)} kg"
+            else:
+                weight_info = ""
+            self.resultLabel.setText(f"Your ideal body weight is {ideal_weight} kg"
+                                     f"{weight_info}")
+        except ValueError:
+            self.resultLabel.setText("Waiting for valid input.")
+
+    def showEvent(self, event):
+        self.heightInput.setText("")
         super().showEvent(event)
 
 class DrawGraphs(QWidget):
@@ -130,7 +221,6 @@ class DrawGraphs(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
-        #layout.setAlignment(Qt.AlignTop)
 
         buttonLayer = QHBoxLayout()
         self.backButton = QPushButton("Back")
@@ -433,8 +523,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Personal Activity Tracker - PATapp")
-        self.setMinimumSize(QSize(500, 200))
-        self.move(100, 200)
+        self.setMinimumSize(QSize(500, 230))
+        self.move(100, 100)
 
         self.stack = QStackedWidget()
         self.menuview = Menu()
@@ -447,12 +537,15 @@ class MainWindow(QMainWindow):
         self.sessionsview.switch_view.connect(self.stack.setCurrentIndex)
         self.graphsview = DrawGraphs()
         self.graphsview.switch_view.connect(self.stack.setCurrentIndex)
+        self.ibwview = IBWcalculator()
+        self.ibwview.switch_view.connect(self.stack.setCurrentIndex)
 
         self.stack.addWidget(self.menuview)     #0
         self.stack.addWidget(self.newseshview)  #1
         self.stack.addWidget(self.physiqueview) #2
         self.stack.addWidget(self.sessionsview) #3
         self.stack.addWidget(self.graphsview)   #4
+        self.stack.addWidget(self.ibwview)      #5
         self.stack.setCurrentIndex(0)
         self.setCentralWidget(self.stack)
 
