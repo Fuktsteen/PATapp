@@ -132,6 +132,11 @@ class Menu(QWidget):
                 session_counter += 1
         except IndexError:
             pass
+        if session_counter == 0:
+            return (f"Save sessions to view average burnt calories here."
+                    f"\nBurn 1000 kcal/week to upkeep basic health"
+                    f"\nBurn 2000-3000 kcal/week to lose fat"
+                    f"\n(ACSM recommendation)")
         calorie_average = calories / session_counter
         minimi = int(round(1000 / calorie_average, 0))
         laihutus_down = int(round(2000 / calorie_average, 0))
@@ -162,7 +167,7 @@ class IBWcalculator(QWidget):
 
         self.backButton = QPushButton("Back")
         self.backButton.clicked.connect(lambda: self.switch_view.emit(0))
-        self.infoLabel = QLabel("Calculate your ideal body weight using Devine Formula.")
+        self.infoLabel = QLabel("Calculate your ideal body weight using the Devine Formula.")
         self.resultLabel = QLabel("Waiting for valid input.")
         self.resultLabel.setAlignment(Qt.AlignHCenter)
 
