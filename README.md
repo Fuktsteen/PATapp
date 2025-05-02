@@ -11,3 +11,5 @@ A simple app to keep track of one's exercises. Plenty of good and feature packed
 ![adding sessions](https://github.com/Fuktsteen/PATapp/blob/main/screenshots/addingsession.png)
 
 ![setting weight](https://github.com/Fuktsteen/PATapp/blob/main/screenshots/settingphysique.png)
+
+![calculating IBW](https://github.com/Fuktsteen/PATapp/blob/main/screenshots/calculatinIBW.png)
